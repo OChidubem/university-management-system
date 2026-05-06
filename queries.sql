@@ -67,7 +67,8 @@ GROUP BY sp.sponsor_id, sp.sponsor_name, sp.sponsor_type
 ORDER BY SUM(g.award_amount) DESC;
 
 -- ─────────────────────────────────────────────────────────────
--- QUERY 5: Projects with NO publications (overdue check)
+-- QUERY 5: Active projects with NO publications using NOT EXISTS
+-- Demonstrates a correlated subquery
 -- ─────────────────────────────────────────────────────────────
 SELECT
     rp.project_id,
@@ -76,9 +77,12 @@ SELECT
     rp.start_date,
     DATEDIFF(CURDATE(), rp.start_date) AS days_active
 FROM ResearchProject rp
-LEFT JOIN Publication p ON p.project_id = rp.project_id
-WHERE p.publication_id IS NULL
-  AND rp.status = 'Active'
+WHERE rp.status = 'Active'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM Publication p
+      WHERE p.project_id = rp.project_id
+  )
 ORDER BY days_active DESC;
 
 -- ─────────────────────────────────────────────────────────────
@@ -95,6 +99,30 @@ JOIN ProjectRole     pr ON pr.person_type = 'Student'
                        AND pr.person_id   = s.student_id
 JOIN ResearchProject rp ON rp.project_id = pr.project_id
 WHERE s.student_id = 1;
+
+-- ─────────────────────────────────────────────────────────────
+-- QUERY 7: Grants above the average awarded grant amount
+-- Demonstrates scalar subquery + comparison
+-- ─────────────────────────────────────────────────────────────
+SELECT
+    g.grant_id,
+    g.grant_title,
+    sp.sponsor_name,
+    g.award_amount,
+    (
+        SELECT AVG(g2.award_amount)
+        FROM ProjectGrant g2
+        WHERE g2.grant_status = 'Awarded'
+    ) AS average_awarded_amount
+FROM ProjectGrant g
+JOIN Sponsor sp ON sp.sponsor_id = g.sponsor_id
+WHERE g.grant_status = 'Awarded'
+  AND g.award_amount > (
+      SELECT AVG(g3.award_amount)
+      FROM ProjectGrant g3
+      WHERE g3.grant_status = 'Awarded'
+  )
+ORDER BY g.award_amount DESC;
 
 -- ─────────────────────────────────────────────────────────────
 -- VIEW 1: Department research summary
