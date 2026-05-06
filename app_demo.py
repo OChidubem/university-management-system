@@ -14,12 +14,12 @@ def connect():
 
 
 def show_sponsors(conn):
-    print("\n--- SELECT: Showing first 5 sponsors ---")
+    print("\n--- SELECT: Showing first 10 sponsors ---")
     sql = """
         SELECT sponsor_id, sponsor_name, sponsor_type, contact_email
         FROM Sponsor
         ORDER BY sponsor_id
-        LIMIT 5
+        LIMIT 10
     """
 
     cursor = conn.cursor(dictionary=True)
@@ -100,6 +100,7 @@ def run_transaction(conn):
     cursor = conn.cursor()
 
     try:
+        conn.commit()
         conn.start_transaction()
 
         # Get one existing project so the foreign key is valid.
